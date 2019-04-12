@@ -1,6 +1,37 @@
 from display import *
 from matrix import *
 from gmath import *
+import random
+
+def scanlines(poly0, poly1, poly2, screen, color):
+    random.seed()
+    color = random.choice([[0, 255, 0], [255, 0, 0], [0, 0, 255]])
+    if poly0[1] < poly1[1] and poly0[1] < poly2[1]:
+	bottom = poly0
+	middle = poly1 if poly1[1] < poly2[1] else poly2
+	top = poly1 if middle == poly2 else poly2
+    elif poly1[1] < poly2[1] and poly1[1] < poly0[1]:
+	bottom = poly1
+        middle = poly0 if poly0[1] < poly2[1] else poly2
+	top = poly0 if middle == poly2 else poly2
+    else:
+	bottom = poly2
+        middle = poly0 if poly0[1] < poly1[1] else poly1
+	top = poly0 if middle == poly1 else poly1
+    x0,x1, y = bottom[0], bottom[0], bottom[1]
+    denom0 = top[1] - bottom[1]
+    denom1 = middle[1] - bottom[1]
+    denom2 = top[1] - middle[1]
+
+    while y < top[1]:
+	y += 1
+	x0 += 0 if denom0 == 0 else (top[0] - bottom[0])/denom0
+	if y > middle[1]:
+	    x1 += 0 if denom2 == 0 else (top[0] - middle[0])/denom2
+	else:
+	    x1 += 0 if denom1 == 0 else (middle[0] - bottom[0])/denom1
+	draw_line(int(x0), int(y), int(x1), int(y), screen, color)
+
 
 def push( stack):
     stack_top =  [stack[-1][x][:] for x in range(len(stack[-1]))]
@@ -22,21 +53,7 @@ def draw_polygons( polygons, screen, color ):
         normal = calculate_normal(polygons, point)[:]
         #print normal
         if normal[2] > 0:
-            draw_line( int(polygons[point][0]),
-                       int(polygons[point][1]),
-                       int(polygons[point+1][0]),
-                       int(polygons[point+1][1]),
-                       screen, color)
-            draw_line( int(polygons[point+2][0]),
-                       int(polygons[point+2][1]),
-                       int(polygons[point+1][0]),
-                       int(polygons[point+1][1]),
-                       screen, color)
-            draw_line( int(polygons[point][0]),
-                       int(polygons[point][1]),
-                       int(polygons[point+2][0]),
-                       int(polygons[point+2][1]),
-                       screen, color)
+	    scanlines(polygons[point], polygons[point+1], polygons[point+2], screen, color)
         point+= 3
 
 
