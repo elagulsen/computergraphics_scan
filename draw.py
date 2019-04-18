@@ -35,8 +35,8 @@ def scanlines(poly0, poly1, poly2, screen, zbuffer, color):
     zquot0 = 0 if int(top[1] - bottom[1]) == 0 else (top[2] - bottom[2])/(top[1] - bottom[1])
     zquot1 = 0 if int(top[1] - middle[1]) == 0 else (top[2] - middle[2])/(top[1] - middle[1])
     zquot2 = 0 if int(middle[1] - bottom[1]) == 0 else (middle[2] - bottom[2]) /(middle[1] - bottom[1])
-    
-    while y < int(middle[1]):
+
+    while y <= int(middle[1]):
         draw_horizontal(int(y), int(x0), z0, int(x1), z1, screen, zbuffer, color)
         x0 += quot0
         z0 += zquot0
@@ -45,7 +45,7 @@ def scanlines(poly0, poly1, poly2, screen, zbuffer, color):
         y+=1
     x1, y, z1 = middle[0],int(middle[1]), middle[2]
     while y < int(top[1]):
-        draw_horizontal(int(y), int(x0), z0, int(x1), z1, screen, zbuffer, color)
+	draw_horizontal(int(y), int(x0), 500, int(x1), 500, screen, zbuffer, color)
         x0 += quot0
         z0 += zquot0
         x1 += quot1
