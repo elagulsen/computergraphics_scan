@@ -3,36 +3,55 @@ from matrix import *
 from gmath import *
 import random
 
-def scanlines(poly0, poly1, poly2, screen, color):
+def scanlines(poly0, poly1, poly2, screen, zbuffer, color):
     random.seed()
-    color = random.choice([[0, 255, 0], [255, 0, 0], [0, 0, 255]])
+    color = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
+    
     if poly0[1] < poly1[1] and poly0[1] < poly2[1]:
-	bottom = poly0
-	middle = poly1 if poly1[1] < poly2[1] else poly2
-	top = poly1 if middle == poly2 else poly2
+        bottom = poly0
+        middle = poly1 if poly1[1] <= poly2[1] else poly2
+        top = poly1 if middle == poly2 else poly2
+
     elif poly1[1] < poly2[1] and poly1[1] < poly0[1]:
-	bottom = poly1
-        middle = poly0 if poly0[1] < poly2[1] else poly2
-	top = poly0 if middle == poly2 else poly2
+        bottom = poly1
+        middle = poly0 if poly0[1] <= poly2[1] else poly2
+        top = poly0 if middle == poly2 else poly2
+        
     else:
-	bottom = poly2
-        middle = poly0 if poly0[1] < poly1[1] else poly1
-	top = poly0 if middle == poly1 else poly1
+        bottom = poly2
+        middle = poly0 if poly0[1] <= poly1[1] else poly1
+        top = poly0 if middle == poly1 else poly1
+    
+    if bottom[1] == middle[1] and bottom[0] > middle[0]:
+        bottom, middle = middle, bottom
+    
     x0,x1, y = bottom[0], bottom[0], bottom[1]
-    denom0 = top[1] - bottom[1]
-    denom1 = middle[1] - bottom[1]
-    denom2 = top[1] - middle[1]
+    z0, z1 = bottom[2], bottom[2]
+    
+    quot0 = 0 if int(top[1] - bottom[1]) == 0 else (top[0] - bottom[0])/(top[1] - bottom[1])
+    quot1 = 0 if int(top[1] - middle[1]) == 0 else (top[0] - middle[0])/(top[1] - middle[1])
+    quot2 = 0 if int(middle[1] - bottom[1]) == 0 else (middle[0] - bottom[0]) /(middle[1] - bottom[1])
 
-    while y < top[1]:
-	y += 1
-	x0 += 0 if denom0 == 0 else (top[0] - bottom[0])/denom0
-	if y > middle[1]:
-	    x1 += 0 if denom2 == 0 else (top[0] - middle[0])/denom2
-	else:
-	    x1 += 0 if denom1 == 0 else (middle[0] - bottom[0])/denom1
-	draw_line(int(x0), int(y), int(x1), int(y), screen, color)
-
-
+    zquot0 = 0 if int(top[1] - bottom[1]) == 0 else (top[2] - bottom[2])/(top[1] - bottom[1])
+    zquot1 = 0 if int(top[1] - middle[1]) == 0 else (top[2] - middle[2])/(top[1] - middle[1])
+    zquot2 = 0 if int(middle[1] - bottom[1]) == 0 else (middle[2] - bottom[2]) /(middle[1] - bottom[1])
+    
+    while y < int(middle[1]):
+        draw_horizontal(int(y), int(x0), z0, int(x1), z1, screen, zbuffer, color)
+        x0 += quot0
+        z0 += zquot0
+        x1 += quot2
+        z1 += zquot2
+        y+=1
+    x1, y, z1 = middle[0],int(middle[1]), middle[2]
+    while y < int(top[1]):
+        draw_horizontal(int(y), int(x0), z0, int(x1), z1, screen, zbuffer, color)
+        x0 += quot0
+        z0 += zquot0
+        x1 += quot1
+        z1 += zquot1
+        y+=1
+        
 def push( stack):
     stack_top =  [stack[-1][x][:] for x in range(len(stack[-1]))]
     stack.append(stack_top) 
@@ -42,7 +61,7 @@ def add_polygon( polygons, x0, y0, z0, x1, y1, z1, x2, y2, z2 ):
     add_point(polygons, x1, y1, z1)
     add_point(polygons, x2, y2, z2)
 
-def draw_polygons( polygons, screen, color ):
+def draw_polygons( polygons, screen, zbuffer, color ):
     if len(polygons) < 2:
         #print 'Need at least 3 points to draw'
         return
@@ -51,9 +70,8 @@ def draw_polygons( polygons, screen, color ):
     while point < len(polygons) - 2:
 
         normal = calculate_normal(polygons, point)[:]
-        #print normal
         if normal[2] > 0:
-	    scanlines(polygons[point], polygons[point+1], polygons[point+2], screen, color)
+            scanlines(polygons[point], polygons[point+1], polygons[point+2], screen, zbuffer, color)
         point+= 3
 
 
@@ -239,7 +257,7 @@ def add_curve( points, x0, y0, x1, y1, x2, y2, x3, y3, step, curve_type ):
         t+= step
 
 
-def draw_lines( matrix, screen, color ):
+def draw_lines( matrix, screen, zbuffer, color ):
     if len(matrix) < 2:
         #print 'Need at least 2 points to draw'
         return
@@ -250,7 +268,7 @@ def draw_lines( matrix, screen, color ):
                    int(matrix[point][1]),
                    int(matrix[point+1][0]),
                    int(matrix[point+1][1]),
-                   screen, color)    
+                   screen, zbuffer, color)    
         point+= 2
         
 def add_edge( matrix, x0, y0, z0, x1, y1, z1 ):
@@ -260,10 +278,20 @@ def add_edge( matrix, x0, y0, z0, x1, y1, z1 ):
 def add_point( matrix, x, y, z=0 ):
     matrix.append( [x, y, z, 1] )
     
-
-
-
-def draw_line( x0, y0, x1, y1, screen, color ):
+def draw_horizontal(y, x0, z0, x1, z1, screen, zbuffer, color):
+    if x1 == x0:
+        return
+    if x0 > x1:
+        x1, x0 = x0, x1
+        z1, z0 = z0, z1
+    dz = (z1 - z0)/(x1 - x0)
+    x, z = x0, z0
+    while x <= x1:
+        plot(screen, zbuffer, color, int(x),int(y), z)
+        z += dz
+        x += 1
+    
+def draw_line( x0, y0, x1, y1, screen, zbuffer, color ):
 
     #swap points if going right -> left
     if x0 > x1:
@@ -287,14 +315,14 @@ def draw_line( x0, y0, x1, y1, screen, color ):
             d = A + B/2
 
             while x < x1:
-                plot(screen, color, x, y)
+                plot(screen, zbuffer, color, x, y)
                 if d > 0:
                     y+= 1
                     d+= B
                 x+= 1
                 d+= A
             #end octant 1 while
-            plot(screen, color, x1, y1)
+            plot(screen, zbuffer, color, x1, y1)
         #end octant 1
 
         #octant 8
@@ -302,14 +330,14 @@ def draw_line( x0, y0, x1, y1, screen, color ):
             d = A - B/2
 
             while x < x1:
-                plot(screen, color, x, y)
+                plot(screen, zbuffer, color, x, y)
                 if d < 0:
                     y-= 1
                     d-= B
                 x+= 1
                 d+= A
             #end octant 8 while
-            plot(screen, color, x1, y1)
+            plot(screen, zbuffer, color, x1, y1)
         #end octant 8
     #end octants 1 and 8
 
@@ -320,14 +348,14 @@ def draw_line( x0, y0, x1, y1, screen, color ):
             d = A/2 + B
 
             while y < y1:
-                plot(screen, color, x, y)
+                plot(screen, zbuffer, color, x, y)
                 if d < 0:
                     x+= 1
                     d+= A
                 y+= 1
                 d+= B
             #end octant 2 while
-            plot(screen, color, x1, y1)
+            plot(screen, zbuffer, color, x1, y1)
         #end octant 2
 
         #octant 7
@@ -335,7 +363,7 @@ def draw_line( x0, y0, x1, y1, screen, color ):
             d = A/2 - B;
 
             while y > y1:
-                plot(screen, color, x, y)
+                plot(screen, zbuffer, color, x, y)
                 if d > 0:
                     x+= 1
                     d+= A

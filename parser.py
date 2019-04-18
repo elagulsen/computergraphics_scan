@@ -59,7 +59,7 @@ See the file script for an example of the file format
 """
 ARG_COMMANDS = [ 'box', 'sphere', 'torus', 'circle', 'bezier', 'hermite', 'line', 'scale', 'move', 'rotate', 'save']
 
-def parse_file( fname, edges, polygons, csystems, screen, color ):
+def parse_file( fname, edges, polygons, csystems, screen, zbuffer, color ):
 
     f = open(fname)
     lines = f.readlines()
@@ -82,7 +82,7 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
                        float(args[0]), float(args[1]), float(args[2]),
                        float(args[3]), step_3d)
             matrix_mult( csystems[-1], polygons )
-            draw_polygons(polygons, screen, color)
+            draw_polygons(polygons, screen, zbuffer, color)
             polygons = []
 
         elif line == 'torus':
@@ -91,7 +91,7 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
                       float(args[0]), float(args[1]), float(args[2]),
                       float(args[3]), float(args[4]), step_3d)
             matrix_mult( csystems[-1], polygons )
-            draw_polygons(polygons, screen, color)
+            draw_polygons(polygons, screen, zbuffer, color)
             polygons = []	
         elif line == 'box':
             #print 'BOX\t' + str(args)
@@ -99,7 +99,7 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
                     float(args[0]), float(args[1]), float(args[2]),
                     float(args[3]), float(args[4]), float(args[5]))
             matrix_mult( csystems[-1], polygons )
-            draw_polygons(polygons, screen, color)
+            draw_polygons(polygons, screen, zbuffer, color)
             polygons = []
 
         elif line == 'circle':
@@ -108,7 +108,7 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
                        float(args[0]), float(args[1]), float(args[2]),
                        float(args[3]), step)
             matrix_mult( csystems[-1], polygons)
-            draw_edges(edges, screen, color)
+            draw_edges(edges, screen, zbuffer, color)
             edges = []
 
         elif line == 'hermite' or line == 'bezier':
@@ -120,7 +120,7 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
                       float(args[6]), float(args[7]),
                       step, line)
             matrix_mult( csystems[-1], polygons)
-            draw_edges(edges, screen, color)
+            draw_edges(edges, screen, zbuffer, color)
             edges = []
 	
         elif line == 'line':
@@ -130,7 +130,7 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
                       float(args[0]), float(args[1]), float(args[2]),
                       float(args[3]), float(args[4]), float(args[5]) )
             matrix_mult( csystems[-1], polygons)
-            draw_edges(edges, screen, color)
+            draw_edges(edges, screen, zbuffer, color)
             edges = []
     
         elif line == 'scale':
@@ -172,4 +172,11 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
     
         elif line == 'quit':
             return
+        
+        elif line == 'clear':
+            clear_screen(screen)
+            clear_zbuffer(zbuffer)
+        
+        elif line == 'clear_zbuffer':
+            clear_screen(zbuffer)
         c+= 1
